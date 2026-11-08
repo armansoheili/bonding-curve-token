@@ -92,6 +92,25 @@ class BondingCurve:
         return self.reserve * (1.0 - (1.0 - tokens_in / self.supply)
                                ** (1.0 / self.reserve_ratio))
 
+    def price_impact(self, reserve_in: float) -> float:
+        """Relative price move caused by buying with ``reserve_in`` reserve.
+
+        Compares the spot price before and after a hypothetical buy of
+        that size, without changing any state.
+
+        >>> curve = BondingCurve(0.5, 1000.0, 1000.0)
+        >>> round(curve.price_impact(100.0), 4)
+        0.0488
+        >>> curve.price_impact(0.0)
+        0.0
+        """
+        if reserve_in < 0:
+            raise ValueError("reserve_in must be non-negative")
+        tokens = self.buy_quote(reserve_in)
+        new_price = ((self.reserve + reserve_in)
+                     / ((self.supply + tokens) * self.reserve_ratio))
+        return new_price / self.spot_price() - 1.0
+
     def buy(self, reserve_in: float) -> float:
         """Spend reserve, mint tokens, return the tokens minted.
 
