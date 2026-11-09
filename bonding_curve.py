@@ -111,6 +111,24 @@ class BondingCurve:
                      / ((self.supply + tokens) * self.reserve_ratio))
         return new_price / self.spot_price() - 1.0
 
+    def average_buy_price(self, reserve_in: float) -> float:
+        """Average price paid per token for a buy of ``reserve_in``.
+
+        Always above the spot price (the curve rises as you buy), and
+        equal to it for a zero-size buy. No state change.
+
+        >>> curve = BondingCurve(0.5, 1000.0, 1000.0)
+        >>> round(curve.average_buy_price(100.0), 4)
+        2.0488
+        >>> curve.average_buy_price(0.0)
+        2.0
+        """
+        if reserve_in < 0:
+            raise ValueError("reserve_in must be non-negative")
+        if reserve_in == 0:
+            return self.spot_price()
+        return reserve_in / self.buy_quote(reserve_in)
+
     def buy(self, reserve_in: float) -> float:
         """Spend reserve, mint tokens, return the tokens minted.
 
