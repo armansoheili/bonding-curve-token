@@ -129,6 +129,24 @@ class BondingCurve:
             return self.spot_price()
         return reserve_in / self.buy_quote(reserve_in)
 
+    def average_sell_price(self, tokens_in: float) -> float:
+        """Average reserve received per token for selling ``tokens_in``.
+
+        Always below the spot price (the curve falls as you sell), and
+        equal to it for a zero-size sell. No state change.
+
+        >>> curve = BondingCurve(0.5, 1000.0, 1000.0)
+        >>> round(curve.average_sell_price(100.0), 4)
+        1.9
+        >>> curve.average_sell_price(0.0)
+        2.0
+        """
+        if tokens_in < 0:
+            raise ValueError("tokens_in must be non-negative")
+        if tokens_in == 0:
+            return self.spot_price()
+        return self.sell_quote(tokens_in) / tokens_in
+
     def buy(self, reserve_in: float) -> float:
         """Spend reserve, mint tokens, return the tokens minted.
 
@@ -189,6 +207,8 @@ def demo() -> None:
     back = curve.sell(tokens / 2)
     print(f"sell half the tokens -> {back:.2f} reserve back, "
           f"price now {curve.spot_price():.4f}")
+    print(f"avg sell price for 100 tokens: "
+          f"{curve.average_sell_price(100.0):.4f} reserve each")
     print(f"reserve ratio still {curve.reserve_ratio_now():.4f}")
 
 
