@@ -147,6 +147,38 @@ class BondingCurve:
             return self.spot_price()
         return self.sell_quote(tokens_in) / tokens_in
 
+    def max_buy_for_price(self, target_price: float) -> float:
+        """Reserve you can spend before the spot price reaches ``target_price``.
+
+        Inverts the buy formula: a buy of ``dB`` moves the price to
+        ``P * (1 + dB / B) ** (1 - R)``, so the reserve that takes the price
+        exactly to the target is ``B * ((target / P) ** (1 / (1 - R)) - 1)``.
+        No state change. With ``R == 1`` the price never moves, so any
+        target above the spot price is unreachable.
+
+        >>> curve = BondingCurve(0.5, 1000.0, 1000.0)
+        >>> round(curve.max_buy_for_price(2.0976), 1)
+        100.0
+        >>> curve.max_buy_for_price(2.0)
+        0.0
+        >>> curve.max_buy_for_price(1.5)
+        Traceback (most recent call last):
+        ...
+        ValueError: target price must be at or above the current spot price
+        >>> BondingCurve(1.0, 1000.0, 1000.0).max_buy_for_price(2.0)
+        Traceback (most recent call last):
+        ...
+        ValueError: with reserve_ratio 1.0 the price never moves
+        """
+        if target_price < self.spot_price():
+            raise ValueError("target price must be at or above the current spot price")
+        if target_price == self.spot_price():
+            return 0.0
+        if self.reserve_ratio >= 1.0:
+            raise ValueError("with reserve_ratio 1.0 the price never moves")
+        ratio = target_price / self.spot_price()
+        return self.reserve * (ratio ** (1.0 / (1.0 - self.reserve_ratio)) - 1.0)
+
     def buy(self, reserve_in: float) -> float:
         """Spend reserve, mint tokens, return the tokens minted.
 
